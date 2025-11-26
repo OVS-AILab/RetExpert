@@ -1,0 +1,11 @@
+torch>=1.10.0
+torchvision>=0.11.0
+timm>=0.9.2
+numpy
+pandas
+scikit-learn
+opencv-python
+Pillow
+pycm
+tensorboard
+openpyxl
