@@ -94,7 +94,7 @@ Data loading logic is defined in `utils/datasets.py`.
 ```
 /path/to/ADMD/
 
-├── test.csv       # Columns: id_code, normal, DR_referable
+├── test.csv       # Columns: id_code, normal, AMD
 └── images/
       ├── img001.png
       ├── img002.png
@@ -108,16 +108,35 @@ Data loading logic is defined in `utils/datasets.py`.
 Example: Train RetExpert on **MuReD** using RAL + FDCM + UAML + SOA:
 
 ```bash
-python train.py \
+# set GPU devices
+export CUDA_VISIBLE_DEVICES=0,1,2,3
+
+# pretrained model path
+PRETRAINED_PATH="../pretrained_model/RETFound_cfp_weights.pth"
+DATA_PATH="../data/MuReD"
+
+# start distributed training
+# adapter_mode: AKU, AKU_tt
+# tuning_mode: adapter (adapter, projection, head, norm), head, batchnorm, full, last_blocks
+python -m torch.distributed.launch --nproc_per_node=4 --master_port=29500 train.py \
     --dataset MuReD \
-    --data_path /path/to/MuReD \
+    --data_path ${DATA_PATH} \
+    --nb_classes 20 \
     --model vit_large_patch16 \
-    --finetune /path/to/RETFound_cfp_weights.pth \
-    --epochs 50 \
+    --finetune ${PRETRAINED_PATH} \
+    --input_size 224 \
     --batch_size 16 \
+    --epochs 200 \
+    --lr 1e-3 \
+    --weight_decay 0.05 \
     --criterion RAL \
     --adapter_mode AKU \
-    --output_dir ./output/ret_expert_mured
+    --tuning_mode adapter \
+    --beta_UAML 0.1 \
+    --gamma_FDCM 0.1 \
+    --alpha_SOA 0.1 \
+    --output_dir ./output_dir/mured_retexpert_run1 \
+    --seed 42
 ```
 
 ---
@@ -127,13 +146,33 @@ python train.py \
 Perform instance-specific TTA on an unseen dataset (e.g.,  **ADMD** ):
 
 ```bash
+export CUDA_VISIBLE_DEVICES=0
+
+# path to ADAM dataset
+DATA_PATH="../data/ADAM"
+# use the checkpoint from MuRed-RetExpert
+CHECKPOINT_PATH="./output_dir/mured_retexpert_run1/checkpoint-best.pth"
+
+echo "Starting Test-Time Adaptation on ADAM..."
+
+# adapter_mode: AKU, AKU_tt
+# adaptation_mode: ttul (adapter, projection, norm), adapter, head, batchnorm, full, last_blocks
 python test_tta.py \
-    --dataset ADMD \
-    --data_path /path/to/ADMD \
-    --finetune ./output/ret_expert_mured/checkpoint-best.pth \
+    --dataset ADAM \
+    --data_path ${DATA_PATH} \
+    --nb_classes 20 \
+    --model vit_large_patch16 \
+    --finetune ${CHECKPOINT_PATH} \
+    --input_size 224 \
+    --batch_size 1 \
+    --tta_lr 0.001 \
     --ttul_epochs 1 \
     --ttpl_epochs 1 \
-    --batch_size 1
+    --adapter_mode AKU \
+    --adaptation_mode adapter \
+    --output_dir ./output_dir/tta_ADAM_results
+
+echo "TTA Finished."
 ```
 
 ---
