@@ -89,10 +89,10 @@ Data loading logic is defined in `utils/datasets.py`.
 
 ---
 
-### **ADMD (External Validation)**
+### **ADAM (External Validation)**
 
 ```
-/path/to/ADMD/
+/path/to/ADAM/
 
 ├── test.csv       # Columns: id_code, normal, AMD
 └── images/
@@ -143,7 +143,7 @@ python -m torch.distributed.launch --nproc_per_node=4 --master_port=29500 train.
 
 ## 🧪 Test-Time Adaptation (TTA)
 
-Perform instance-specific TTA on an unseen dataset (e.g.,  **ADMD** ):
+Perform instance-specific TTA on an unseen dataset (e.g.,  **ADAM** ):
 
 ```bash
 export CUDA_VISIBLE_DEVICES=0
